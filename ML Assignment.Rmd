@@ -1,0 +1,61 @@
+---
+title: "ML Assignment"
+---
+The Purpose of this Project is to build a model predicting the manner in which an athlete is performing a barbell lifts. Their are 5 different ways characterized in the "classe" variable in the provided database. We intend to perform the study following the steps outlined below:
+
+  1. Collect the data and perform some summary analysis
+  
+  2. Select the data relevant to our prediction model
+  
+  3. Split the data in a training set and a testing set. The idea is to perform cross validation on the testing set to have an estimate of the out of sample error of the model derived using teh training set.
+  
+  4. Build the model using the training set. Check the accuracy of the model on the testing data and conclude on the validity of the model.
+
+Load necessary libraries and set the seed for reproducibility:
+```{r}
+library(caret)
+set.seed("909")
+```
+
+
+Getting Data
+```{r}
+dat<-read.csv("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+```
+Quick Data Overview 
+```{r}
+dim(dat)
+str(dat)
+```
+
+
+We are looking to keep the columns with relevant data. As such we will look for data specific to each attempt, that is to say we are eliminating columns with empty data (min, max, skew, kurtosis etc..) and columns with NAs. We are also eliminating data that intuitively have no place in the study such as date, time or athlete name.
+```{r}
+dat<-dat[,apply(sapply(dat,function(x){x=="" | is.na(x)}),2,sum)==0]
+dat<-dat[,-(2:7)]
+```
+
+Let's partition the data using a 70% of the data as training set and the 30% remaining as testing set.
+```{r}
+Intrain<-createDataPartition(dat$X,p=0.7,list=FALSE)
+training<-dat[Intrain,]
+testing<-dat[-Intrain,]
+```
+
+
+We run random forest using preprocessing to scale and center the data on the **training set**. To have an estimate of the out of sample error we predict the data on the **testing set** using our model and compute its accuracy and error.
+```{r}
+modfit<-train(classe ~ .-X, method="rf",data=training,preProcess=c("center","scale"))
+test_prediction<-predict(modfit,testing)
+accu<-sum(test_prediction==testing$classe)/length(testing$classe)
+err<-1-accu
+```
+Our estimate for the out of sample accuracy is:
+```{r}
+print(accu)
+```
+Our estimate for the out of sample error is:
+```{r}
+print(err)
+```
+###The value is low enough to give us confidence in applying our model to the data provided in the second part of this assignment!
